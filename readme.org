@@ -1,0 +1,117 @@
+#+OPTIONS: toc:nil
+#+LINK: day https://adventofcode.com/2019/day/%s
+
+
+* Day 1
+Problem description [[day:1][here]].
+
+** Solution
+#+BEGIN_SRC elisp :exports both
+  (defun read-file (file)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (split-string (buffer-string) "\n" t))
+    )
+
+  (defun mass-to-fuel (mass)
+    (- (/ mass 3) 2)
+    )
+
+  ;; Can't this be done with a formula, instead of doing it iteratively?
+  (defun get-fuel (module fuel)
+    (if (> (mass-to-fuel module) 0)
+        (+ (mass-to-fuel module) (get-fuel (mass-to-fuel module) fuel))
+      0
+      )
+    )
+
+  (let (( a (read-file "./d1-input.txt")))
+    (reduce '+
+            (mapcar (lambda (mod) (get-fuel (string-to-number mod) 0)) a)
+            )
+    )
+#+END_SRC
+
+#+RESULTS:
+: 5051054
+
+* Day 2
+Problem description [[day:2][here]]. 
+
+#+BEGIN_SRC elisp :exports both
+  (defun get-program (file-name)
+    (vconcat ; create a vector from the list of numbers
+     (mapcar ; conver each sub-string to a number in the list
+      'string-to-number
+      (split-string ; split the string by "," separator, and get a list of sub-strings
+       (car ; get the only element from the list; assume the whole program is on one line
+        (read-file file-name) ; a list of text lines from the file
+        ) 
+       ","
+       )
+      )
+     )
+    )
+
+  (defun exec-program (prog pc)
+    "Executes the program stored in the vector PROGRAM, from the
+    current program counter position stored in PC"
+    (let ( (opcode (elt prog pc))
+           (op-func '((1 . +) (2 . *)))
+           )
+      (case opcode
+        ((1 2) ;; + or * operations
+         (let* ( (addr1 (elt prog (+ pc 1))) ; address of first operand
+                 (addr2 (elt prog (+ pc 2))) ; address of second operand
+                 (op1 (elt prog addr1)) ; val of first operand
+                 (op2 (elt prog addr2)) ; val of second operand
+                 (addr3 (elt prog (+ pc 3))) ; add of the result
+                 )
+           ;; get the + or * operation from the op-func alist, apply it and store the result
+           (aset prog addr3 (apply (alist-get opcode op-func) (list op1 op2)))
+           (exec-program prog (+ pc 4))
+           )
+         )
+        (99 ;; halt - return the current state of the program
+         prog
+         )
+        ( t
+          ;; if we ended up on an unknown op-code, it might also be because of a wrong input to the
+          ;; program? Let's give up and not go further.  (exec-program prog (+ pc 1))
+          prog
+          )
+        )
+      )
+    )
+
+  ;; (let ((prog (get-program "./d2-input.txt")))
+  ;;   (exec-program prog 0)
+  ;;   )
+
+  (let ((magic-val 19690720))
+    (cl-loop for x from 0 to (* 100 100)
+             when (eq
+                   magic-val
+                   (let ((prog (get-program "./d2-input.txt")))
+                     (aset prog 1 (mod x 100))
+                     (aset prog 2 (/ x 100))
+                     (exec-program prog 0)
+                     (elt prog 0)
+                     )
+                   )
+             return (+ (* 100 (mod x 100)) (/ x 100))
+             )
+    )
+
+#+END_SRC
+
+#+RESULTS:
+: 7014
+
+* Day 3
+
+Problem description [[day:3][here]].
+
+#+BEGIN_SRC elisp :exports both
+
+#+END_SRC
